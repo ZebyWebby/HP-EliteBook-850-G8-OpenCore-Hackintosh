@@ -87,9 +87,9 @@ gpio controller `_HID` is `INT34C5`.
 
 ## remote access
 
-- the laptop (<laptop-tailscale-ip>, user `uwuis`) was reachable over tailscale ssh while windows was on it. windows has been
+- the laptop (<tailscale-ip>, user `uwuis`) was reachable over tailscale ssh while windows was on it. windows has been
   wiped for a clean macos install, so there's no remote access to it until macos is up
-- zeb's desktop (<pc-tailscale-ip>, user `Zeb`, windows) is where the usb gets plugged in to edit it remotely. run powershell
+- zeb's desktop (<tailscale-ip>, user `Zeb`, windows) is where the usb gets plugged in to edit it remotely. run powershell
   there with `-EncodedCommand` (utf-16le base64), `-File` output comes back empty
 
 ## status (2026-11-05, outdated: see HANDOFF.md for the current state)

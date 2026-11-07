@@ -13,7 +13,7 @@ the history of every fix) before changing things. this skill is the working meth
 | place | how to reach it | notes |
 | --- | --- | --- |
 | zeb's windows pc | this checkout, `C:\Users\Zeb\elitebook-850-g8-opencore` | can push to git.neptunethefox.dev. git autocrlf is on, so text files are CRLF in the working copy |
-| the laptop (macos tahoe 26.7.2) | `ssh zebastian@<mac-tailscale-ip>` over tailscale, key `zeb-desktop-claude` from the pc | repo copy at `~/elitebook-850-g8-opencore` (clean LF). no sudo over ssh, no login for the git server |
+| the laptop (macos tahoe 26.7.2) | `ssh zebastian@<tailscale-ip>` over tailscale, key `zeb-desktop-claude` from the pc | repo copy at `~/elitebook-850-g8-opencore` (clean LF). no sudo over ssh, no login for the git server |
 | the OPENCORE usb (rescue stick) | `/Volumes/OPENCORE` on the mac, `D:` on the pc | also holds `SysReport/ACPI` (acpi dump), `debug-backup/` (DEBUG opencore + drivers), `kext-backup/`, `config.plist.*` backups |
 
 the laptop boots from its own efi partition (`disk0s1`). the usb is the way back in when a change breaks boot: boot it

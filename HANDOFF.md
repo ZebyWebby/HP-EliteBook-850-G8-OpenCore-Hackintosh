@@ -26,11 +26,11 @@ read README.md and AGENTS.md first. this file covers the live state, which AGENT
 
 ## remote access
 
-- mac: `ssh zebastian@<mac-tailscale-ip>` (tailscale). neptune's key is in authorized_keys
+- mac: `ssh zebastian@<tailscale-ip>` (tailscale). neptune's key is in authorized_keys
 - sudo over ssh needs zeb's password, ask zeb
 - gui admin prompts from ssh fail (-60007). bluetooth is blocked by tcc from ssh
 - xcode command line tools are installed on the mac (clang works). lldb attach is denied, use in-process signal handlers instead
-- zeb's windows desktop: `ssh Zeb@<pc-tailscale-ip>`, the usb gets plugged in there for edits (D: is OPENCORE, H: is INSTALL)
+- zeb's windows desktop: `ssh Zeb@<tailscale-ip>`, the usb gets plugged in there for edits (D: is OPENCORE, H: is INSTALL)
 
 ## usb layout (`EFI/OC/` on the OPENCORE partition)
 
