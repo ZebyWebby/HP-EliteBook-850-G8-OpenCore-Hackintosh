@@ -1,0 +1,368 @@
+diff --git a/Multitouch Support/Native/VoodooI2CNativeEngine.cpp b/Multitouch Support/Native/VoodooI2CNativeEngine.cpp
+index 506a297..9b03518 100644
+--- a/Multitouch Support/Native/VoodooI2CNativeEngine.cpp	
++++ b/Multitouch Support/Native/VoodooI2CNativeEngine.cpp	
+@@ -109,6 +109,21 @@ MultitouchReturn VoodooI2CNativeEngine::handleInterruptReport(VoodooI2CMultitouc
+     return MultitouchReturnBreak;
+ }
+ 
++MultitouchReturn VoodooI2CNativeEngine::handleTrackpointReport(SInt32 dx, SInt32 dy, UInt32 buttons, AbsoluteTime timestamp) {
++    if (!voodooInputInstance)
++        return MultitouchReturnContinue;
++
++    // VoodooInput's TrackpointDevice applies the deadzone, speed multipliers and middle button scrolling
++    TrackpointReport report;
++    report.timestamp = timestamp;
++    report.dx = dx;
++    report.dy = dy;
++    report.buttons = buttons;
++
++    super::messageClient(kIOMessageVoodooTrackpointMessage, voodooInputInstance, &report, sizeof(report));
++    return MultitouchReturnBreak;
++}
++
+ bool VoodooI2CNativeEngine::start(IOService* provider) {
+     if (!super::start(provider))
+         return false;
+diff --git a/Multitouch Support/Native/VoodooI2CNativeEngine.hpp b/Multitouch Support/Native/VoodooI2CNativeEngine.hpp
+index a0fbadc..186e46f 100644
+--- a/Multitouch Support/Native/VoodooI2CNativeEngine.hpp	
++++ b/Multitouch Support/Native/VoodooI2CNativeEngine.hpp	
+@@ -41,7 +41,8 @@ class EXPORT VoodooI2CNativeEngine : public VoodooI2CMultitouchEngine {
+     void onPropertyChange() override;
+     bool willTerminate(IOService* provider, IOOptionBits options) override;
+     
+-    MultitouchReturn handleInterruptReport(VoodooI2CMultitouchEvent event, AbsoluteTime timestamp);
++    MultitouchReturn handleInterruptReport(VoodooI2CMultitouchEvent event, AbsoluteTime timestamp) override;
++    MultitouchReturn handleTrackpointReport(SInt32 dx, SInt32 dy, UInt32 buttons, AbsoluteTime timestamp) override;
+  private:
+     int stylus_check = 0;
+ };
+diff --git a/Multitouch Support/VoodooI2CMultitouchEngine.cpp b/Multitouch Support/VoodooI2CMultitouchEngine.cpp
+index 28be736..450277d 100644
+--- a/Multitouch Support/VoodooI2CMultitouchEngine.cpp	
++++ b/Multitouch Support/VoodooI2CMultitouchEngine.cpp	
+@@ -33,6 +33,10 @@ MultitouchReturn VoodooI2CMultitouchEngine::handleInterruptReport(VoodooI2CMulti
+     return MultitouchReturnContinue;
+ }
+ 
++MultitouchReturn VoodooI2CMultitouchEngine::handleTrackpointReport(SInt32 dx, SInt32 dy, UInt32 buttons, AbsoluteTime timestamp) {
++    return MultitouchReturnContinue;
++}
++
+ bool VoodooI2CMultitouchEngine::willTerminate(IOService* provider, IOOptionBits options) {
+     if (provider->isOpen(this))
+         provider->close(this);
+diff --git a/Multitouch Support/VoodooI2CMultitouchEngine.hpp b/Multitouch Support/VoodooI2CMultitouchEngine.hpp
+index a467d5b..2e58d2f 100644
+--- a/Multitouch Support/VoodooI2CMultitouchEngine.hpp	
++++ b/Multitouch Support/VoodooI2CMultitouchEngine.hpp	
+@@ -41,6 +41,17 @@ class EXPORT VoodooI2CMultitouchEngine : public IOService {
+ 
+     virtual MultitouchReturn handleInterruptReport(VoodooI2CMultitouchEvent event, AbsoluteTime timestamp);
+ 
++    /* Handles a relative pointer report (e.g. a pointing stick)
++     * @dx Relative X movement
++     * @dy Relative Y movement
++     * @buttons Button state, bit 0 left, bit 1 right, bit 2 middle
++     * @timestamp The timestamp of the report
++     *
++     * @return *MultitouchReturnBreak* if the report was consumed, *MultitouchReturnContinue* otherwise
++     */
++
++    virtual MultitouchReturn handleTrackpointReport(SInt32 dx, SInt32 dy, UInt32 buttons, AbsoluteTime timestamp);
++
+     bool willTerminate(IOService* provider, IOOptionBits options) override;
+ 
+     /* Sets up the multitouch engine
+diff --git a/Multitouch Support/VoodooI2CMultitouchInterface.cpp b/Multitouch Support/VoodooI2CMultitouchInterface.cpp
+index f0e2de0..b07daea 100644
+--- a/Multitouch Support/VoodooI2CMultitouchInterface.cpp	
++++ b/Multitouch Support/VoodooI2CMultitouchInterface.cpp	
+@@ -26,6 +26,20 @@ void VoodooI2CMultitouchInterface::handleInterruptReport(VoodooI2CMultitouchEven
+     }
+ }
+ 
++void VoodooI2CMultitouchInterface::handleTrackpointReport(SInt32 dx, SInt32 dy, UInt32 buttons, AbsoluteTime timestamp) {
++    int i, count;
++    VoodooI2CMultitouchEngine* engine;
++
++    for (i = 0, count = engines->getCount(); i < count; i++) {
++        engine = OSDynamicCast(VoodooI2CMultitouchEngine, engines->getObject(i));
++        if (!engine)
++            continue;
++
++        if (engine->handleTrackpointReport(dx, dy, buttons, timestamp) == MultitouchReturnBreak)
++            break;
++    }
++}
++
+ bool VoodooI2CMultitouchInterface::handleOpen(IOService* forClient, IOOptionBits options, void* arg) {
+     VoodooI2CMultitouchEngine* engine = OSDynamicCast(VoodooI2CMultitouchEngine, forClient);
+ 
+diff --git a/Multitouch Support/VoodooI2CMultitouchInterface.hpp b/Multitouch Support/VoodooI2CMultitouchInterface.hpp
+index c734287..8ca7d2a 100644
+--- a/Multitouch Support/VoodooI2CMultitouchInterface.hpp	
++++ b/Multitouch Support/VoodooI2CMultitouchInterface.hpp	
+@@ -58,6 +58,15 @@ class EXPORT VoodooI2CMultitouchInterface : public IOService {
+ 
+     void handleInterruptReport(VoodooI2CMultitouchEvent event, AbsoluteTime timestamp);
+ 
++    /* Forwards a relative pointer report (e.g. a pointing stick) to the engines
++     * @dx Relative X movement
++     * @dy Relative Y movement
++     * @buttons Button state, bit 0 left, bit 1 right, bit 2 middle
++     * @timestamp The timestamp of the report
++     */
++
++    void handleTrackpointReport(SInt32 dx, SInt32 dy, UInt32 buttons, AbsoluteTime timestamp);
++
+     /* Controls the open behavior of <VoodooI2CMultitouchInterface>
+      * @forClient An instance of <VoodooI2CMultitouchEngine> that wishes to be a client
+      * @options Options avaliable for the open
+diff --git a/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CMultitouchHIDEventDriver.cpp b/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CMultitouchHIDEventDriver.cpp
+index de0099d..b4c338c 100644
+--- a/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CMultitouchHIDEventDriver.cpp	
++++ b/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CMultitouchHIDEventDriver.cpp	
+@@ -85,10 +85,6 @@ const char* VoodooI2CMultitouchHIDEventDriver::getProductName() {
+ }
+ 
+ void VoodooI2CMultitouchHIDEventDriver::handleInterruptReport(AbsoluteTime timestamp, IOMemoryDescriptor* report, IOHIDReportType report_type, UInt32 report_id) {
+-    // Touchpad is disabled through ApplePS2Keyboard request
+-    if (ignore_all)
+-        return;
+-    
+     uint64_t now_abs;
+     clock_get_uptime(&now_abs);
+     uint64_t now_ns;
+@@ -97,6 +93,14 @@ void VoodooI2CMultitouchHIDEventDriver::handleInterruptReport(AbsoluteTime times
+     if (report_type == kIOHIDReportTypeInput && readyForReports())
+         clock_get_uptime(&last_multi_touch_event);
+     
++    // Pointing stick and other relative pointer reports skip the touchpad's typing filter
++    if (report_type == kIOHIDReportTypeInput && readyForReports() && handleRelativePointerReport(timestamp, report_id))
++        return;
++    
++    // Touchpad is disabled through ApplePS2Keyboard request
++    if (ignore_all)
++        return;
++    
+     // Ignore touchpad interaction(s) shortly after typing
+     if (now_ns - key_time < max_after_typing)
+         return;
+@@ -131,6 +135,149 @@ void VoodooI2CMultitouchHIDEventDriver::handleInterruptReport(AbsoluteTime times
+     }
+ }
+ 
++bool VoodooI2CMultitouchHIDEventDriver::handleRelativePointerReport(AbsoluteTime timestamp, UInt32 report_id) {
++    RelativePointer* pointer = nullptr;
++
++    for (int i = 0; i < relative_pointer_count; i++) {
++        if (relative_pointers[i].report_id == report_id) {
++            pointer = &relative_pointers[i];
++            break;
++        }
++    }
++
++    if (!pointer)
++        return false;
++
++    SInt32 delta[2] = {0, 0};
++    IOHIDElement* axes[2] = {pointer->x, pointer->y};
++
++    for (int i = 0; i < 2; i++) {
++        UInt32 value = axes[i]->getValue();
++        UInt32 size = axes[i]->getReportSize();
++
++        // Sign extend from the field size, logical min is negative for relative axes
++        if (size > 0 && size < 32 && (SInt32)axes[i]->getLogicalMin() < 0) {
++            UInt32 shift = 32 - size;
++            delta[i] = ((SInt32)(value << shift)) >> shift;
++        } else {
++            delta[i] = (SInt32)value;
++        }
++    }
++
++    UInt32 buttons = 0;
++
++    for (int i = 0; i < kMaxRelativePointerButtons; i++) {
++        if (pointer->buttons[i] && pointer->buttons[i]->getValue())
++            buttons |= 1 << i;
++    }
++
++    if (multitouch_interface)
++        multitouch_interface->handleTrackpointReport(delta[0], delta[1], buttons, timestamp);
++
++    return true;
++}
++
++// kIOHIDElementKey only holds the top level collections, the fields live in their children
++static void collectElements(OSArray* elements, OSArray* out) {
++    for (int index = 0, count = elements->getCount(); index < count; index++) {
++        IOHIDElement* element = OSDynamicCast(IOHIDElement, elements->getObject(index));
++        if (!element)
++            continue;
++
++        out->setObject(element);
++
++        OSArray* children = element->getChildElements();
++        if (children)
++            collectElements(children, out);
++    }
++}
++
++void VoodooI2CMultitouchHIDEventDriver::parseRelativePointerElements(OSArray* top_level) {
++    relative_pointer_count = 0;
++
++    OSArray* elements = OSArray::withCapacity(64);
++    if (!elements)
++        return;
++
++    collectElements(top_level, elements);
++
++    for (int index = 0, count = elements->getCount(); index < count; index++) {
++        IOHIDElement* element = OSDynamicCast(IOHIDElement, elements->getObject(index));
++        if (!element)
++            continue;
++
++        IOHIDElementType type = element->getType();
++        if (type != kIOHIDElementTypeInput_Misc && type != kIOHIDElementTypeInput_Button && type != kIOHIDElementTypeInput_Axis)
++            continue;
++
++        UInt32 usage_page = element->getUsagePage();
++        UInt32 usage = element->getUsage();
++        bool is_axis = usage_page == kHIDPage_GenericDesktop && (usage == kHIDUsage_GD_X || usage == kHIDUsage_GD_Y);
++        bool is_button = usage_page == kHIDPage_Button && usage >= kHIDUsage_Button_1 && usage <= kMaxRelativePointerButtons;
++
++        if (!is_axis && !is_button)
++            continue;
++
++        // Absolute X/Y belongs to digitiser or absolute mouse collections, leave those alone
++        if (is_axis && !(element->getFlags() & kIOHIDElementFlagsRelativeMask))
++            continue;
++
++        // Only take elements that live inside a generic desktop mouse collection
++        bool in_mouse = false;
++        for (IOHIDElement* parent = element->getParentElement(); parent; parent = parent->getParentElement()) {
++            if (parent->getType() == kIOHIDElementTypeCollection && parent->conformsTo(kHIDPage_GenericDesktop, kHIDUsage_GD_Mouse)) {
++                in_mouse = true;
++                break;
++            }
++        }
++
++        if (!in_mouse)
++            continue;
++
++        UInt32 report_id = element->getReportID();
++        RelativePointer* pointer = nullptr;
++
++        for (int i = 0; i < relative_pointer_count; i++) {
++            if (relative_pointers[i].report_id == report_id) {
++                pointer = &relative_pointers[i];
++                break;
++            }
++        }
++
++        if (!pointer) {
++            if (relative_pointer_count >= kMaxRelativePointers)
++                continue;
++
++            pointer = &relative_pointers[relative_pointer_count++];
++            *pointer = RelativePointer();
++            pointer->report_id = report_id;
++        }
++
++        if (is_axis) {
++            if (usage == kHIDUsage_GD_X && !pointer->x)
++                pointer->x = element;
++            else if (usage == kHIDUsage_GD_Y && !pointer->y)
++                pointer->y = element;
++        } else if (!pointer->buttons[usage - kHIDUsage_Button_1]) {
++            pointer->buttons[usage - kHIDUsage_Button_1] = element;
++        }
++    }
++
++    // Drop collections without both axes
++    UInt8 kept = 0;
++    for (int i = 0; i < relative_pointer_count; i++) {
++        if (!relative_pointers[i].x || !relative_pointers[i].y)
++            continue;
++
++        relative_pointers[kept++] = relative_pointers[i];
++        IOLog("%s::%s Relative pointer found on report 0x%02x, forwarding it to the trackpoint device\n", getName(), name, relative_pointers[i].report_id);
++    }
++    relative_pointer_count = kept;
++
++    // the pointers keep their element references, the elements are retained by the hid device
++    elements->release();
++}
++
+ void VoodooI2CMultitouchHIDEventDriver::handleDigitizerReport(AbsoluteTime timestamp, UInt32 report_id) {
+     if (!digitiser.transducers)
+         return;
+@@ -659,6 +806,10 @@ IOReturn VoodooI2CMultitouchHIDEventDriver::parseElements(UInt32 usage) {
+     }
+     
+ 
++    // Touchpads (not touchscreens) can carry a pointing stick as a mouse collection
++    if (usage != kHIDUsage_Dig_TouchScreen)
++        parseRelativePointerElements(supported_elements);
++
+     if (digitiser.styluses->getCount() == 0 && digitiser.fingers->getCount() == 0)
+         return kIOReturnError;
+ 
+diff --git a/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CMultitouchHIDEventDriver.hpp b/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CMultitouchHIDEventDriver.hpp
+index 60b9558..b5b4a1e 100644
+--- a/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CMultitouchHIDEventDriver.hpp	
++++ b/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CMultitouchHIDEventDriver.hpp	
+@@ -46,6 +46,10 @@
+ // Allows pen, stylus, touchpad, or touchscreen to be parsed in parseElements
+ #define kHIDUsage_Dig_Any               0x00
+ 
++// Limits for relative pointer (mouse) collections, e.g. a pointing stick on a touchpad
++#define kMaxRelativePointers            4
++#define kMaxRelativePointerButtons      5
++
+ // Message types defined by ApplePS2Keyboard
+ enum {
+     // from keyboard to mouse/touchpad
+@@ -110,6 +114,22 @@ class EXPORT VoodooI2CMultitouchHIDEventDriver : public IOHIDEventService {
+      */
+     
+     UInt32 getElementValue(IOHIDElement* element);
++
++    /* Parses generic desktop mouse collections that report relative X/Y, such as a pointing stick
++     * sharing its HID device with a precision touchpad
++     * @elements All elements of the HID device
++     */
++
++    void parseRelativePointerElements(OSArray* elements);
++
++    /* Called during the interrupt routine to forward a relative pointer report to the trackpoint device
++     * @timestamp The timestamp of the interrupt report
++     * @report_id The report ID of the interrupt report
++     *
++     * @return *true* if the report belonged to a relative pointer collection, *false* otherwise
++     */
++
++    bool handleRelativePointerReport(AbsoluteTime timestamp, UInt32 report_id);
+     
+     const char* getProductName();
+ 
+@@ -274,6 +294,16 @@ class EXPORT VoodooI2CMultitouchHIDEventDriver : public IOHIDEventService {
+ 
+  private:
+     SInt32 absolute_axis_removal_percentage = 15;
++
++    struct RelativePointer {
++        UInt32          report_id = 0;
++        IOHIDElement*   x = nullptr;
++        IOHIDElement*   y = nullptr;
++        IOHIDElement*   buttons[kMaxRelativePointerButtons] = {};
++    };
++
++    RelativePointer relative_pointers[kMaxRelativePointers];
++    UInt8 relative_pointer_count = 0;
+     
+     bool ignore_all;
+     bool ignore_mouse = false;

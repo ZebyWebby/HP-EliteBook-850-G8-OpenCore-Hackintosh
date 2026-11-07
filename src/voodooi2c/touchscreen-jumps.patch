@@ -1,0 +1,70 @@
+diff --git a/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CTouchscreenHIDEventDriver.cpp b/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CTouchscreenHIDEventDriver.cpp
+index 8c35adf..028532f 100755
+--- a/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CTouchscreenHIDEventDriver.cpp	
++++ b/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CTouchscreenHIDEventDriver.cpp	
+@@ -20,6 +20,14 @@ static bool isCloseTo(IOFixed x, IOFixed y, IOFixed other_x, IOFixed other_y) {
+            FAT_FINGER_ZONE;
+ }
+ 
++/* Check if the first set of coordinates is within limit of the second set on both axes
++ */
++static bool isWithin(IOFixed x, IOFixed y, IOFixed other_x, IOFixed other_y, IOFixed limit) {
++    IOFixed diff_x = x - other_x;
++    IOFixed diff_y = y - other_y;
++    return diff_x <= limit && diff_x >= -limit && diff_y <= limit && diff_y >= -limit;
++}
++
+ OSDefineMetaClassAndStructors(VoodooI2CTouchscreenHIDEventDriver, VoodooI2CMultitouchHIDEventDriver);
+ 
+ // Override of VoodooI2CMultitouchHIDEventDriver
+@@ -51,6 +59,20 @@ bool VoodooI2CTouchscreenHIDEventDriver::checkFingerTouch(AbsoluteTime timestamp
+                 y = last_click_y;
+             }
+ 
++            // Some panels (the ELAN2513 in the HP EliteBook 850 G8) send a single report with a far off position
++            // right before a lift, or a one report phantom touch. A finger can't move that far in one report, so keep
++            // the pointer where it is until a second report agrees with the new position.
++            if (is_finger_down && !isWithin(x, y, last_x, last_y, TOUCH_JUMP_LIMIT)) {
++                if (!(has_pending_jump && isWithin(x, y, pending_jump_x, pending_jump_y, TOUCH_JUMP_LIMIT))) {
++                    has_pending_jump = true;
++                    pending_jump_x = x;
++                    pending_jump_y = y;
++                    scheduleClick();
++                    return true;
++                }
++            }
++            has_pending_jump = false;
++
+             if (!is_finger_down) {
+                 is_finger_down = true;
+                 touch_start_time = last_interaction_time;
+@@ -201,6 +223,7 @@ void VoodooI2CTouchscreenHIDEventDriver::fingerLift() {
+ 
+ void VoodooI2CTouchscreenHIDEventDriver::resetTouch() {
+     is_finger_down = false;
++    has_pending_jump = false;
+     is_right_clicking = false;
+     moved_during_right_click = false;
+     is_dragging = false;
+diff --git a/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CTouchscreenHIDEventDriver.hpp b/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CTouchscreenHIDEventDriver.hpp
+index 0963f07..8c20953 100755
+--- a/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CTouchscreenHIDEventDriver.hpp	
++++ b/VoodooI2C Satellites/VoodooI2CHID/VoodooI2CHID/VoodooI2CTouchscreenHIDEventDriver.hpp	
+@@ -30,6 +30,7 @@
+ #define MULTITOUCH_TIMEOUT  250 * 1000000
+ #define FINGER_LIFT_DELAY   50 // milliseconds
+ #define DRAG_START_DELAY    50
++#define TOUCH_JUMP_LIMIT    7864 // largest move accepted between two reports, 12% of the 0..65535 range
+ 
+ #define HOVER       0x0
+ #define LEFT_CLICK  0x1
+@@ -106,6 +107,9 @@ class EXPORT VoodooI2CTouchscreenHIDEventDriver : public VoodooI2CMultitouchHIDE
+     IOFixed last_click_y = 0;
+     IOFixed touch_start_x = 0;
+     IOFixed touch_start_y = 0;
++    bool has_pending_jump = false;
++    IOFixed pending_jump_x = 0;
++    IOFixed pending_jump_y = 0;
+     UInt32 barrel_switch_offset = 0;
+     UInt32 eraser_switch_offset = 0;
+     SInt32 last_id = 0;

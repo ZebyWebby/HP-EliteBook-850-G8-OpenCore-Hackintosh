@@ -1,0 +1,6 @@
+com.apple.recovery.boot/
+SysReport/
+opencore-*.txt
+*.dmg
+*.pkg
+.DS_Store
