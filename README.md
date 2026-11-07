@@ -22,7 +22,7 @@ HP EliteBook 850 G8 (103c:8846)
 	This EFI is made for my laptop, it might not work on yours even if it's the same model, its all about luck.
 	It only works on Tiger Lake 850 G8s with Iris Xe graphics.
 	It uses WhateverXe instead of WhateverGreen. NEVER ADD WHATEVERGREEN, the two must not load together.
-	The SMBIOS serial, MLB, UUID and ROM in config.plist are placeholders. MAKE YOUR OWN with macserial before you boot it.
+	The SMBIOS serials in config.plist are mine. MAKE YOUR OWN with macserial before signing into iCloud.
 	MAKE SURE TO BACKUP YOUR DATA AND KEEP A WINDOWS BOOT PATH WORKING.
 
 # What works:
