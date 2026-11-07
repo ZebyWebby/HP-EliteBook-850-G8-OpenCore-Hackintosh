@@ -19,7 +19,7 @@ everything it is built from.
 | `src/make_efi.py` | builds `EFI/` and config.plist from extracted release zips |
 | `src/install-tahoe.sh` | offline installer script that sits on the usb's exFAT INSTALL partition |
 | `src/voodooi2c/` | pointing stick patch for VoodooI2C 2.9.1 and the script that builds it on the mac (command line tools, no xcode) |
-| `assets/banner.png` | readme banner |
+| `src/publish-public.py` | publishes a cleaned copy to the public github repo |
 
 ## building
 
@@ -72,6 +72,9 @@ it wipes and rebuilds `EFI/` every run, so any change has to live in the script,
   changes the mac's identity
 - this is the public copy: PlatformInfo (serial, MLB, ROM, SystemUUID) holds opencore's sample placeholders. the real values
   live only in zeb's private repo
+- the public github copy (ZebyWebby/HP-EliteBook-850-G8-OpenCore-Hackintosh) is not a mirror. after pushing here, update it
+  with `python3 -I src/publish-public.py` (only when zeb asks). it publishes HEAD with placeholder PlatformInfo, no tailscale
+  ips and no password note, and stops if a real value is left. never push this repo's history to github
 - never commit `SysReport/`, opencore logs or acpi dumps from the laptop. the MSDM table contains zeb's windows license key.
   `.gitignore` already covers SysReport, `opencore-*.txt`, `.pkg` and `.dmg`
 - don't commit `com.apple.recovery.boot/` or the InstallAssistant.pkg, they come from apple

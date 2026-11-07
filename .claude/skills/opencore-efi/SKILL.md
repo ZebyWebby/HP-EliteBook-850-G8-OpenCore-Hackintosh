@@ -154,7 +154,8 @@ before deciding a fix failed.
 - docs and comments lowercase, no middle dots or bullet dots as separators
 - commit as `clawd <clawd@neptunethefox.dev>`, never force push, only commit when zeb asks. push from the pc
   (`GIT_TERMINAL_PROMPT=0 git push origin main`), then bring the mac copy along with a `git bundle` + `--ff-only` merge
-  and `git update-ref refs/remotes/origin/main <sha>` there
+  and `git update-ref refs/remotes/origin/main <sha>` there. the public github copy only updates through
+  `python3 -I src/publish-public.py` (when zeb asks), never push the history there
 - record what you found and changed in HANDOFF.md (and README.md when the hardware status changes), on both copies
 
 ## device facts
