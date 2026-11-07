@@ -19,6 +19,7 @@ everything it is built from.
 | `src/make_efi.py` | builds `EFI/` and config.plist from extracted release zips |
 | `src/install-tahoe.sh` | offline installer script that sits on the usb's exFAT INSTALL partition |
 | `src/voodooi2c/` | pointing stick patch for VoodooI2C 2.9.1 and the script that builds it on the mac (command line tools, no xcode) |
+| `src/radio-keys/`, `src/radio-toggle/` | hotkey helper with popups (airplane F18 wifi + bluetooth, F1/F16 and star/F17 from keys.plist) and the radio cli |
 | `src/publish-public.py` | publishes a cleaned copy to the public github repo |
 
 ## building

@@ -34,13 +34,15 @@ for moves over 12% of the screen in one report until a second report agrees.
 
 gpio pins with VoodooGPIO 44fc744: touchpad 175, touchscreen 267, both `Interrupt Mode = GPIO`.
 
-## keyboard (VoodooPS2 codes, "launch hotkeys without fn keypress" off)
+## keyboard (VoodooPS2 codes. zeb has "launch hotkeys without fn keypress" on since 2026-11-07, which swaps the columns)
 
 | key | alone | with fn |
 | --- | --- | --- |
-| F1 display switch | F1 | win + p (macos sees ⌘P) |
+| F1 display switch | F1 (3b) | e06e, mapped to F16 (ADB 0x6a) by SSDT-PS2K. VoodooPS2's default 0x70 (vidmirror) is dropped by tahoe |
 | mute | F5 (3f) | e020 mute |
 | airplane | F11 (57) | e078, mapped to F18 (ADB 0x4f) by SSDT-PS2K |
+| F9 keyboard backlight | handled inside the EC | no scancode and no EC query, nothing reaches macos |
+| F10 (insert) | e052 | e052 (same), mapped to help (ADB 0x72) by SSDT-PS2K. VoodooPS2's default is eject (0x92) |
 | star (F12) | F12 (58) | 0x68 = F17 (ADB 0x40) |
 
 ## audio (realtek alc285, 10ec:0285, codec address 0, afg node 0x01)

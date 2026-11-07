@@ -17,7 +17,8 @@ the history of every fix) before changing things. this skill is the working meth
 | the OPENCORE usb (rescue stick) | `/Volumes/OPENCORE` on the mac, `D:` on the pc | also holds `SysReport/ACPI` (acpi dump), `debug-backup/` (DEBUG opencore + drivers), `kext-backup/`, `config.plist.*` backups |
 
 the laptop boots from its own efi partition (`disk0s1`). the usb is the way back in when a change breaks boot: boot it
-with f9. if both break, have zeb plug the usb into the pc and fix it on `D:` with python/plistlib.
+with f9. while the usb is plugged in it boots FIRST (picker with a 3 s countdown), so internal efi changes don't load:
+unplug it before a test reboot. if both break, have zeb plug the usb into the pc and fix it on `D:` with python/plistlib.
 
 when ssh times out after a reboot or a freeze, tailscale on the mac usually hasn't connected: ask zeb to toggle it in the
 menu bar. `tailscale ping` from the pc showing `rx 0` means the tunnel is up but stuck.

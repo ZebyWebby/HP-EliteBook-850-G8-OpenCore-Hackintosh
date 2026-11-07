@@ -165,6 +165,36 @@ and didn't want.
   `log show`; LogScanCodes does nothing in the RELEASE build). with "launch hotkeys without fn" off in the bios:
   mute alone = F5 (3f), fn+mute = e020 (sent once), airplane alone = F11 (57), fn+airplane = e078, F12 = 58,
   fn+F12 (star) = 0x68 = F17. `SSDT-PS2K` maps e078 to F18 through RMCF "Custom ADB Map"
+- F1 display switch (2026-11-07): zeb turned "launch hotkeys without fn keypress" on, so the hotkeys work alone and fn
+  gives the plain F-keys. the display switch hotkey sends e06e (VoodooPS2 DEBUG log), fn+F1 sends 3b. VoodooPS2 maps e06e
+  to adb 0x70 (NX_KEYTYPE_VIDMIRROR), which tahoe drops, so the key did nothing. `SSDT-PS2K` now maps e06e to F16 (0x6a),
+  checked with the CGEventTap logger `~/key-test/keytest` (run from Terminal): keycode 106 down/up. the earlier "win + p"
+  was a guess, it was never logged. the acpi side has no display switch handler, it's purely a ps/2 scancode
+- airplane key (2026-11-07): HeliPort has no applescript, url scheme or cli, so `src/radio-toggle` talks to itlwm's
+  ItlNetworkUserClient directly (IOCTL_80211_POWER = 2, set ORs 0x800000, from HeliPort ClientKit) and uses IOBluetooth's
+  private IOBluetoothPreferenceSet/GetControllerPowerState for bluetooth. over ssh tcc makes the bluetooth read return off.
+  a Shortcuts keyboard shortcut on F18 never fires: Shortcuts registers it through the services system (pbs.plist
+  key_equivalent `#` + U+F715) and a bare F-key falls through to the app (beep). so `src/radio-keys` (RadioKeys.app in
+  ~/Applications, LaunchAgent dev.neptunethefox.radiokeys) registers F18 with carbon RegisterEventHotKey (no input
+  monitoring needed), toggles both radios and shows a hud. it needs the bluetooth permission (NSBluetoothAlwaysUsageDescription,
+  ad hoc signed so the grant sticks). both log to ~/Library/Logs/radio-toggle.log. zeb confirmed the key and popup work
+- F1 and star keys (2026-11-07): RadioKeys also registers F16 (display switch) and F17 (star). each runs a shell command
+  from ~/Library/Application Support/RadioKeys/keys.plist (default `src/radio-keys/keys.plist`, build.sh only installs
+  it once) and shows a popup: F16 `open -a 'Mission Control'`, F17 `open -a Screenshot`. zeb had F16/F17 bound in
+  System Settings (symbolic hotkeys 32 and 184), those have to be unticked so the key only goes to RadioKeys. a rebuild
+  changes the ad hoc signature, so macos may ask for the bluetooth permission again. zeb confirmed both keys work
+- F9 keyboard backlight (2026-11-07): no popup possible. it cycles bright, low, off in the EC itself: no scancode
+  (keytest and VoodooPS2 DEBUG both empty) and no EC query. checked with a temporary SSDT that wrapped all 31 EC0 _Qxx
+  methods (DSDT, plus _Q30/_Q31 in OEM table LAPTOPPC, _Q17 in HPSANIMD, _Q20 in PwrCtlEv, _Q27 is ACFIX's) and
+  sent a dead e0xx scancode from each through Notify (PS2K, 0x04xx): brightness down/up showed _Q87/_Q86, F9 nothing.
+  the _Q01/_Q02/_Q10-_Q13 HP WMI event 0x20002 (data 0..5) is something else. Notify (PS2K, 0x04xx) is a handy way
+  to find which EC query a button raises
+- F10 (2026-11-07): sends e052 (insert) with or without fn. VoodooPS2 maps it to 0x92 (eject), which does nothing
+  without a drive. `SSDT-PS2K` maps it to 0x72 (help, the mac insert key). RadioKeys shows an Insert popup through a
+  listen-only event tap (input monitoring), not a hot key, so the key still reaches the app. zeb confirmed the popup
+- usb boot order (2026-11-07): with the OPENCORE usb plugged in, the laptop boots the usb's opencore (picker with a 3 s
+  countdown), not the internal efi. changes installed with `update-efi-internal.sh` then don't load. two F1 tests were
+  wasted on that. unplug the usb before rebooting to test internal efi changes, or check `kextstat` uuids after boot
 - mute key "unmuting itself": the built-in output had no mute control at all (`output muted of (get volume settings)` =
   missing value), so macOS showed the icon and reverted. fix: SimpleHDA's HAL pkg (`SimpleHDA-HAL-1.0.1.pkg`, payload is
   only `/Library/Audio/Plug-Ins/SimpleHDA/AppleHDAHALPlugIn.bundle`, no scripts)

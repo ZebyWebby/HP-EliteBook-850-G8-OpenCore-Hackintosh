@@ -50,7 +50,8 @@ This is an EFI folder I have for the HP EliteBook 850 G8
 - [X] All USB ports (USB map included)
 - [X] H264 and HEVC hardware decode
 - [X] Booting without the USB
-- [X] Function keys (fn + F1 is Win + P so macOS sees Cmd + P, fn + F5 is mute, fn + F11 airplane is F18 and fn + F12 star is F17, bind those in Keyboard Shortcuts)
+- [X] Hotkeys with an on-screen popup like the volume one (RadioKeys): airplane turns Wi-Fi and Bluetooth off together, F1 display switch opens Mission Control, star (F12) opens the screenshot toolbar, F10 is Insert (the Mac Help key) with an Insert popup
+- [X] Function keys (with HP's hotkeys on by default: F1 display switch is F16, F5 is mute, F11 airplane is F18 and F12 star is F17. hold fn for the plain F-keys)
 - ❓ HDMI
 - ❓ External monitors over USB-C (can be flaky on Tiger Lake)
 - ❓ Webcam
@@ -80,8 +81,9 @@ Already fine: Secure Boot off, Fast Boot off, Sure Start BIOS protection off, Bi
 1. Copy the EFI folder and a Tahoe recovery (`python3 macrecovery.py -b Mac-CFF7D910A743CAAF -m 00000000000000000 -os latest download` from the OpenCore Utilities) to a FAT32 GPT USB drive. Or do the offline install with `src/install-tahoe.sh` and the InstallAssistant.pkg on an exFAT partition
 2. Boot it with F9, pick macOS Recovery, make an APFS volume in Disk Utility and reinstall macOS
 3. After installing: the WhateverXe-Graphics pkg (graphics acceleration), HeliPort (Wi-Fi), the SimpleHDA HAL pkg (volume and mute) and `src/muteled` (mute LEDs)
-4. Turn sleep off so it doesn't freeze: `sudo pmset -a hibernatemode 0 standby 0 powernap 0 proximitywake 0 tcpkeepalive 0 displaysleep 0` and `sudo pmset -a disablesleep 1`
-5. Copy the EFI to the internal disk with `sudo bash src/install-efi-internal.sh`, then in F10 > Advanced > Boot Options turn on Customized Boot with `\EFI\BOOT\BOOTx64.efi`
+4. Hotkeys: run `bash src/radio-keys/build.sh`. It installs RadioKeys (a background helper that starts at login), which grabs the airplane key (F18: Wi-Fi and Bluetooth off or on together), F1 (F16: Mission Control) and star (F17: screenshot toolbar) and shows a popup for each, plus an Insert popup for F10 (it only watches that key, so it needs Input Monitoring). Allow Bluetooth for RadioKeys the first time, and untick any F16/F17 shortcuts in System Settings > Keyboard > Keyboard Shortcuts. What F1 and star do is set in `~/Library/Application Support/RadioKeys/keys.plist` (a shell command, an SF Symbols icon and the popup text per key), restart it after editing with `launchctl kickstart -k gui/$(id -u)/dev.neptunethefox.radiokeys`. It also installs `radio-toggle` in `~/.local/bin` for Terminal: `radio-toggle status`, `radio-toggle wifi off`, `radio-toggle bt on`
+5. Turn sleep off so it doesn't freeze: `sudo pmset -a hibernatemode 0 standby 0 powernap 0 proximitywake 0 tcpkeepalive 0 displaysleep 0` and `sudo pmset -a disablesleep 1`
+6. Copy the EFI to the internal disk with `sudo bash src/install-efi-internal.sh`, then in F10 > Advanced > Boot Options turn on Customized Boot with `\EFI\BOOT\BOOTx64.efi`
 
 There's no boot picker, it boots straight into macOS. Hold Esc or Option at power on for it.
 

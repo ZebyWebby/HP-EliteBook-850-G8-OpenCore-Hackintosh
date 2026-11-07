@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- RadioKeys key actions, installed to ~/Library/Application Support/RadioKeys/keys.plist (build.sh only copies it
+     when it isn't there yet). F16 is the display switch key (F1), F17 the star key (F12).
+     command: shell command (/bin/sh -c), symbol: popup icon (an SF Symbols name, hp:display or hp:prog for the drawn
+     hp key icons, or text:word), text: popup text. command can be left out for a popup only.
+     after editing: launchctl kickstart -k gui/$(id -u)/dev.neptunethefox.radiokeys -->
+<plist version="1.0">
+<dict>
+	<key>F16</key>
+	<dict>
+		<key>command</key>
+		<string>open -a 'Mission Control'</string>
+		<key>symbol</key>
+		<string>hp:display</string>
+		<key>text</key>
+		<string>Mission Control</string>
+	</dict>
+	<key>F17</key>
+	<dict>
+		<key>command</key>
+		<string>open -a Screenshot</string>
+		<key>symbol</key>
+		<string>hp:prog</string>
+		<key>text</key>
+		<string>Screenshot</string>
+	</dict>
+</dict>
+</plist>
