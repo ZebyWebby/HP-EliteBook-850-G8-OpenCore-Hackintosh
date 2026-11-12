@@ -3,6 +3,28 @@
 where things stand on zeb's elitebook 850 g8 hackintosh, written 2026-11-06 for whoever picks this up next (human or agent).
 read README.md and AGENTS.md first. this file covers the live state, which AGENTS.md's "status" section is older than.
 
+## final state (2026-11-12)
+
+- tahoe updated to 26.7.3 (25G342) through software update with this EFI, no changes needed
+- `EFI/` in this repo was synced from the laptop's internal efi partition (disk0s1, copied 2026-11-12). it matches file
+  for file except: the `_S3` to `XS3` acpi patch is in the repo but switched off (on the laptop it was on, as a test),
+  and leftovers on the partition that never load were not taken over (RTCMemoryFixup.kext, a `Resources` folder in
+  VoodooPS2's VoodooInput, `config.plist.bak/.install/.normal/.polling/.pre-fixes` and `kext-backup/` from the usb copy)
+- the laptop is moving to linux, so this is the last state of the hackintosh
+- sleep was never fixed, all of this failed (2026-11-07):
+  - s3 as is, after the gpu fixes: froze on wake, `0x1F EFI/Bootrom Failure after last point of entry to sleep`. both mute
+    leds lit, no caps lock, no ssh, so it dies in hp's firmware before macos gets control
+  - bios VT-d off, then also Extended Idle Power States off: same freeze
+  - bios Runtime Power Management off plus Power Control unticked: macos doesn't boot any more (hangs at the apple logo),
+    turned back on. no s3 or modern standby option exists in this bios
+  - hp's community has 830 g8 / 850 g8 owners on windows with the same no-wake problem and no way to turn s3 off
+  - hibernation: HibernationFixup 1.5.4 + `HibernateMode NVRAM` + `pmset hibernatemode 25`. the kernel still slept with
+    `hibmode=0` and never wrote `/var/vm/sleepimage` (date stayed at the pmset time), then froze in s3 as before. native
+    nvram works (macos written variables survive reboots), so that wasn't it. not found why the kernel skipped it
+  - `_S3` hidden through the acpi patch: macos then doesn't sleep at all, it only turns the screen off and keeps running
+    (zeb found it warm in a bag). the patch is kept in the config, off
+- the laptop was left with `pmset disablesleep 1` and `hibernatemode 25`
+
 ## state of the laptop
 
 - macos tahoe 26.7.2 (25G332) is installed on the internal ssd. opencore is on the internal efi too since 2026-11-06 and boots

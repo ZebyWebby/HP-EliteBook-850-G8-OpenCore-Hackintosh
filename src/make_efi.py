@@ -23,6 +23,7 @@ for a in sorted(os.listdir(f"{S}/ssdt")):
 
 kexts = [  # (source, enabled plugins handled below)
  "Lilu-1.7.2-RELEASE/Lilu.kext",
+ "HibernationFixup-1.5.4-RELEASE/HibernationFixup.kext",  # s3 resume dies in hp's firmware, so sleep is hibernation (pmset hibernatemode 25). this keeps the hibernation key in nvram for boot.efi
  "VirtualSMC-1.3.8-RELEASE/Kexts/VirtualSMC.kext",
  "WhateverXe-0.7.0-6bank/WhateverXe.kext",  # 91270/WhateverXe fix/tgl-gt2-6-l3-banks ci build (run 41764065332): upstream 0.7.0 refuses the 80 EU / 6 L3 bank gpu (issue 24), 0.6.1 fails on 26.7.2
  "AMFIPass-v1.4.1-Mod-RELEASE/AMFIPass.kext",
@@ -83,7 +84,12 @@ c["ACPI"]["Patch"] = [{
   "ReplaceMask":b"","Skip":0,"TableLength":0,"TableSignature":b"DSDT"},
  {"Base":"","BaseSkip":0,"Comment":"EC0._Q27 to XQ27 in UcsiAcpi (pairs with SSDT-ACFIX)","Count":1,"Enabled":True,
   "Find":b"_Q27","Limit":0,"Mask":b"","OemTableId":b"UcsiAcpi","Replace":b"XQ27",
-  "ReplaceMask":b"","Skip":0,"TableLength":0,"TableSignature":b"SSDT"}]
+  "ReplaceMask":b"","Skip":0,"TableLength":0,"TableSignature":b"SSDT"},
+ # off: hides _S3 so macos can't use s3 (its resume dies in hp's firmware). tested 2026-11-07: macos then never sleeps at
+ # all, it only turns the screen off and keeps running (got warm in a bag), and it doesn't hibernate either
+ {"Base":"","BaseSkip":0,"Comment":"_S3 to XS3 (hide s3, off: macos then never sleeps)","Count":1,"Enabled":False,
+  "Find":bytes.fromhex("085F53335F"),"Limit":0,"Mask":b"","OemTableId":b"","Replace":bytes.fromhex("085853335F"),
+  "ReplaceMask":b"","Skip":0,"TableLength":0,"TableSignature":b"DSDT"}]
 for q in c["ACPI"]["Quirks"]: c["ACPI"]["Quirks"][q] = False
 # Booter
 c["Booter"]["MmioWhitelist"] = []; c["Booter"]["Patch"] = []
@@ -118,6 +124,9 @@ kq["SetApfsTrimTimeout"] = -1
 m = c["Misc"]
 # no picker: boots the default (macos) straight away. hold esc or option at power on for the picker
 m["Boot"].update({"PickerMode":"External","PickerAttributes":17,"ShowPicker":False,"Timeout":5,"HideAuxiliary":True,"PollAppleHotKeys":True,"PickerVariant":"Acidanthera\\GoldenGate"})
+# hibernation instead of s3 (resume from s3 dies in hp's firmware). HibernationFixup puts the key in nvram, so look there,
+# and boot the hibernated macos straight away even when the picker is on (usb stick)
+m["Boot"].update({"HibernateMode":"NVRAM","HibernateSkipsPicker":True})
 # no file logging (Target 0x40 fsyncs every line to the usb, very slow) and no SysReport, which RELEASE doesn't do anyway
 m["Debug"].update({"AppleDebug":False,"ApplePanic":True,"DisableWatchDog":True,"Target":3,"SysReport":False})
 m["Security"].update({"AllowSetDefault":True,"BlacklistAppleUpdate":True,"ScanPolicy":0,"SecureBootModel":"Disabled","Vault":"Optional","DmgLoading":"Signed","ExposeSensitiveData":6})

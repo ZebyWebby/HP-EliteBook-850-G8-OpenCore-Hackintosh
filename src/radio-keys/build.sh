@@ -24,7 +24,7 @@ cp Info.plist "$APP/Contents/Info.plist"
 cp "$TMP/radio-keys" "$APP/Contents/MacOS/radio-keys"
 # ad hoc signature. macOS ties the bluetooth and input monitoring permissions to it, so every rebuild needs them
 # granted again (Privacy & Security, remove RadioKeys, add it back). keep rebuilds rare: key actions and popups for
-# F16, F17 and the hp events live in keys.plist. a self-signed certificate would fix this, but codesign only takes
+# F16 and F17 live in keys.plist. a self-signed certificate would fix this, but codesign only takes
 # one the system trusts, and trusting it is a security setting for zeb to change
 codesign --force --sign - --identifier dev.neptunethefox.radiokeys "$APP"
 cp "$TMP/radio-toggle" "$BIN/radio-toggle"
@@ -32,7 +32,9 @@ cp "$TMP/radio-toggle" "$BIN/radio-toggle"
 CONF="$HOME/Library/Application Support/RadioKeys"
 mkdir -p "$CONF"
 [ -f "$CONF/keys.plist" ] || cp keys.plist "$CONF/keys.plist"
-sed "s|/Users/zebastian|$HOME|g" dev.neptunethefox.radiokeys.plist > "$AGENT"
+# only rewrite the launch agent when it changed: every write makes macos show a "background items added" notification
+sed "s|/Users/zebastian|$HOME|g" dev.neptunethefox.radiokeys.plist > "$TMP/agent.plist"
+cmp -s "$TMP/agent.plist" "$AGENT" || cp "$TMP/agent.plist" "$AGENT"
 rm -rf "$TMP"
 
 launchctl bootstrap "gui/$(id -u)" "$AGENT"

@@ -6,8 +6,11 @@ This is an EFI folder I have for the HP EliteBook 850 G8
 > the kext patches and builds and the scripts, and debugged everything over SSH while I tested it on the laptop. So if
 > something looks weird, that's why.
 
+> [!NOTE]
+> This is the final state of the EFI from November 2026, copied off the laptop's own EFI partition before it moved to Linux.
+
 > [!CAUTION]
-> This is **ONLY** for macOS Tahoe 26.7.2 so stuff **COULD** break when used with a different macOS version.
+> This is **ONLY** for macOS Tahoe 26.7.2 and 26.7.3 (it updated to 26.7.3 fine) so stuff **COULD** break when used with a different macOS version.
 > It uses WhateverXe instead of WhateverGreen. **NEVER** add WhateverGreen, the two must not load together.
 
 > [!NOTE]
@@ -33,7 +36,7 @@ This is an EFI folder I have for the HP EliteBook 850 G8
 | Audio | Realtek ALC285 |
 | Trackpad | Synaptics SYNA30BE (I2C, with the pointing stick) |
 | Touchscreen | ELAN2513 (I2C) |
-| OS | macOS Tahoe 26.7.2 |
+| OS | macOS Tahoe 26.7.3 (25G342) |
 
 - [X] Graphics Acceleration (Metal, with WhateverXe 0.7.0 6 L3 bank fork + the WhateverXe-Graphics pkg)
 - [X] Wi-Fi (itlwm + HeliPort)
@@ -55,7 +58,7 @@ This is an EFI folder I have for the HP EliteBook 850 G8
 - ❓ HDMI
 - ❓ External monitors over USB-C (can be flaky on Tiger Lake)
 - ❓ Webcam
-- [ ] Sleep (waking up fails in HP's firmware and the laptop freezes, so sleep is turned off)
+- [ ] Sleep (waking up from S3 fails inside HP's firmware and the laptop freezes. HP's own forum has G8s failing to wake on Windows too. hibernation never kicked in and hiding S3 just keeps it awake with the screen off, so sleep stays turned off. SHUT IT DOWN BEFORE PUTTING IT IN A BAG)
 - [ ] Display sleep (the screen stays black after it turns off, so that's off too)
 - [ ] Internal Microphone (it's on the Intel DSP, macOS has no driver for it. use a headset, USB or bluetooth mic)
 - [ ] Boot chime (the laptop hangs while it starts playing it)
